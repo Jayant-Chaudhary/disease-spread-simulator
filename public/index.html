@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disease Spread Simulator</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+x
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🦠</div>
+      <div class="logo-text">
+        <h1>Disease Spread Simulator</h1>
+        <p>Dijkstra's Shortest Path · Indian City Network</p>
+      </div>
+    </div>
+    <div class="header-tags">
+      <span class="htag">DSA Project</span>
+      <span class="htag">OOP in Java</span>
+      <span class="htag">Statistical Model</span>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <div class="panel">
+
+      <div class="panel-section">
+        <div class="sec-label">How it works</div>
+        <div class="step-guide">
+          <div class="step active-step" id="step1">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Choose a disease variant</h4>
+              <p>Each variant has a different R0 — how many people one person infects</p>
+            </div>
+          </div>
+          <div class="step" id="step2">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Pick Patient Zero</h4>
+              <p>The city where the outbreak starts. Click any city on the map or in the list below</p>
+            </div>
+          </div>
+          <div class="step" id="step3">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Run the simulation</h4>
+              <p>Dijkstra's algorithm finds the fastest spread routes through the city network</p>
+            </div>
+          </div>
+          <div class="step" id="step4">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h4>Explore &amp; intervene</h4>
+              <p>Click cities to trace spread paths. Lock down cities to block routes and rerun</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">Disease Variant</div>
+        <div class="variant-grid">
+          <button class="vbtn active" data-v="covid" onclick="selVariant(this)">
+            <div class="vdot" style="background:#4f8ef7"></div>
+            <div class="vinfo">
+              <div class="vname">Original COVID-19</div>
+              <div class="vdesc">Moderate spread, high severity</div>
+            </div>
+            <div class="vr0" style="color:#4f8ef7">R0 2.5</div>
+          </button>
+          <button class="vbtn vd" data-v="delta" onclick="selVariant(this)">
+            <div class="vdot" style="background:#ffb703"></div>
+            <div class="vinfo">
+              <div class="vname">Delta</div>
+              <div class="vdesc">Faster spread, very severe</div>
+            </div>
+            <div class="vr0" style="color:#ffb703">R0 5.0</div>
+          </button>
+          <button class="vbtn vo" data-v="omicron" onclick="selVariant(this)">
+            <div class="vdot" style="background:#9b72cf"></div>
+            <div class="vinfo">
+              <div class="vname">Omicron</div>
+              <div class="vdesc">Fastest spread, lower severity</div>
+            </div>
+            <div class="vr0" style="color:#9b72cf">R0 8.0</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">Patient Zero City</div>
+        <div class="city-list" id="city-list"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">Animation Speed</div>
+        <div class="speed-row">
+          <span>Slow</span>
+          <input type="range" id="spd" min="1" max="5" value="3" step="1">
+          <span>Fast</span>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <button class="btn btn-run" id="run-btn" disabled onclick="runSim()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l10 6-10 6V2z"/></svg>
+          Run Simulation
+        </button>
+        <button class="btn btn-lock" id="lock-btn" style="display:none" onclick="toggleLock()">
+          Lock Down a City
+        </button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ Reset Everything</button>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">Legend</div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#06d6a0"></div>Healthy</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#ff4d6d"></div>Infected</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#ff6b35"></div>Patient Zero</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#4895ef"></div>Locked down</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── CENTER CANVAS ────────────────────────────── -->
+    <div class="canvas-area">
+      <canvas id="mc"></canvas>
+
+      <div class="tooltip" id="tooltip">
+        <div class="tt-name" id="tt-name">City</div>
+        <div class="tt-row"><span class="tt-key">Status</span><span class="tt-val" id="tt-status">Healthy</span></div>
+        <div class="tt-row"><span class="tt-key">Infected day</span><span class="tt-val" id="tt-day">—</span></div>
+        <div class="tt-row col">
+          <div style="display:flex;justify-content:space-between"><span class="tt-key">Population density</span><span class="tt-val" id="tt-d">—</span></div>
+          <div class="tt-bar"><div class="tt-fill" id="tt-d-bar" style="background:#4f8ef7"></div></div>
+        </div>
+        <div class="tt-row col">
+          <div style="display:flex;justify-content:space-between"><span class="tt-key">Healthcare quality</span><span class="tt-val" id="tt-h">—</span></div>
+          <div class="tt-bar"><div class="tt-fill" id="tt-h-bar" style="background:#06d6a0"></div></div>
+        </div>
+        <div class="tt-row col">
+          <div style="display:flex;justify-content:space-between"><span class="tt-key">Immunity level</span><span class="tt-val" id="tt-i">—</span></div>
+          <div class="tt-bar"><div class="tt-fill" id="tt-i-bar" style="background:#9b72cf"></div></div>
+        </div>
+      </div>
+
+      <div class="status-bar" id="sb">
+        Step 1: Select a <b>disease variant</b> above, then pick a <b>Patient Zero</b> city
+      </div>
+    </div>
+
+    <div class="panel panel-right">
+
+      <div class="panel-section">
+        <div class="sec-label">Live Statistics</div>
+        <div class="stats-grid">
+          <div class="stat-card inf"><div class="stat-val" id="s-inf">0</div><div class="stat-lbl">Cities infected</div></div>
+          <div class="stat-card saf"><div class="stat-val" id="s-saf">10</div><div class="stat-lbl">Cities safe</div></div>
+          <div class="stat-card day"><div class="stat-val" id="s-day">—</div><div class="stat-lbl">Days elapsed</div></div>
+          <div class="stat-card lk"><div class="stat-val" id="s-lk">0</div><div class="stat-lbl">Locked down</div></div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">Infection Order Table</div>
+        <div class="explainer">
+          <b>City-wise infection ranking</b> — sorted by which city gets infected first. Lower day = disease arrived earlier via the shortest path.
+        </div>
+        <div class="order-table-wrap">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>City</th>
+                <th>Tier</th>
+                <th>Day</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="order-tbody">
+              <tr>
+                <td colspan="5" style="color:var(--text3);text-align:center;padding:16px;font-size:12px">
+                  Run the simulation to see infection order...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">Day-by-Day Spread Timeline</div>
+        <div class="explainer">
+          <b>Which cities get infected each day</b> — driven by edge weights. High connectivity + low immunity = earlier infection.
+        </div>
+        <div class="day-log" id="day-log">
+          <span style="color:var(--text3);font-size:11px">Run simulation to see the timeline...</span>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">Spread Path Tracer <span style="font-weight:400;color:var(--text3)">(click city on map)</span></div>
+        <div class="explainer">
+          The exact <b>fastest contamination chain</b> from Patient Zero to the clicked city, found by Dijkstra's algorithm.
+        </div>
+        <div class="path-box" id="path-box">
+          <span style="color:var(--text3)">Click any city after running the simulation...</span>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="sec-label">City Resistance Factors</div>
+        <div class="explainer">
+          Statistically generated from real data. <b>High density</b> = spreads faster out. <b>High immunity &amp; healthcare</b> = resists infection better.
+        </div>
+        <div class="factor-list" id="factor-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/dijkstra.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/simulation.js"></script>
+
+</body>
+</html>
